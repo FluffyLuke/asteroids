@@ -1,0 +1,16 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "--std=c++23",
+      "-o",
+      "target/game",
+      "src/main.cpp"
+    ],
+    "directory": "/home/furras/Workspace/Asteroids",
+    "file": "/home/furras/Workspace/Asteroids/src/main.cpp",
+    "output": "/home/furras/Workspace/Asteroids/target/game"
+  }
+]
