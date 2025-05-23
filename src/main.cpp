@@ -1,5 +1,4 @@
-#include <format>
-#include <print>
+#include <spdlog/spdlog.h>
 int main() {
-    std::print("Hello world!");
+    spdlog::info("A");
 }

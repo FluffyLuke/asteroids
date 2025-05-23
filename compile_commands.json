@@ -4,13 +4,14 @@
       "/usr/bin/g++",
       "-c",
       "-Wall",
-      "--std=c++23",
+      "-std=c++23",
+      "-I./libs/spdlog/include",
       "-o",
-      "target/game",
+      "src/main.o",
       "src/main.cpp"
     ],
-    "directory": "/home/furras/Workspace/Asteroids",
-    "file": "/home/furras/Workspace/Asteroids/src/main.cpp",
-    "output": "/home/furras/Workspace/Asteroids/target/game"
+    "directory": "/home/furras/Workspace/asteroids",
+    "file": "/home/furras/Workspace/asteroids/src/main.cpp",
+    "output": "/home/furras/Workspace/asteroids/src/main.o"
   }
 ]

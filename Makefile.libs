@@ -1,0 +1,11 @@
+
+spdlog: libs/spdlog/build/libspdlog.a
+
+libs/spdlog/build:
+	mkdir libs/spdlog/build
+
+libs/spdlog/build/libspdlog.a: libs/spdlog/build
+	cd libs/spdlog/build; cmake ..; make
+
+
+libs: spdlog
