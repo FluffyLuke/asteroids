@@ -3,22 +3,25 @@
 CXX := g++
 
 CXXFLAGS := -Wall -std=c++23 -MP -MD \
-		-I./libs/spdlog/include
+	-I./libs/spdlog/include
 
 LDFLAGS := -L./libs/spdlog/build -l:libspdlog.a
 
-SRCS := $(shell find ./src/ -type f -name '*.cpp')
-OBJS := $(patsubst %.cpp,%.o,$(SRCS))
-DEPS := $(patsubst %.cpp,%.d,$(SRCS))
+SRCDIR := src/
+BINDIR := target/
+
+SRCS := $(wildcard src/*.cpp)
+OBJS := $(patsubst $(SRCDIR)%.cpp, $(BINDIR)%.o, $(SRCS))
+DEPS := $(patsubst $(SRCDIR)%.cpp, $(BINDIR)%.d, $(SRCS))
 
 -include Makefile.libs
 
-all: libs game
+all: libs ./target/game
 
-game: $(OBJS)
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+./target/game: $(OBJS)
+	$(CXX) -o $@ $^
 
-%.o: %.cpp
+$(BINDIR)%.o: $(SRCDIR)%.cpp
 	$(CXX) -c -o $@ $(CXXFLAGS) $<
 
 -include $(DEPS)
