@@ -14,16 +14,19 @@ void LoadAllResources(GameContext* ctx) {
 int main() {
     GameContext ctx{};
 
-    InitWindow(1200, 1000, "Asteroids");
+    InitWindow(720, 600, "Asteroids");
     SetTargetFPS(60);
 
     GameManager::CreateGameManager(&ctx);
+    UIManager::CreateUIManager(&ctx);
+
     LoadAllResources(&ctx);
 
     spdlog::info("Starting game!");
-    for(auto&& gm : ctx.gameObjects) {
-        for(auto&& c : gm->components) {
+    for(auto&& go : ctx.gameObjects) {
+        for(auto&& c : go->components) {
             c->Start();
+            spdlog::info("NIGGER");
         }
     }
     while(!WindowShouldClose()) {

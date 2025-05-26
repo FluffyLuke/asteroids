@@ -14,16 +14,19 @@ IComponent::IComponent(GameContext* ctx, GameObject* gameObject) {
 
 // === Game Manager ===
 
+GameManager::GameManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {
+    instance = this;
+}
 void GameManager::CreateGameManager(GameContext* ctx) {
     auto gm = ctx->NewGameObject();
 
     auto gmc = std::make_unique<GameManager>(ctx, gm);
     gm->AddComponent(std::move(gmc));
 }
-GameManager::GameManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {}
+
 PlayerControllerComponent* GameManager::spawnPlayer() {
     auto player = ctx->NewGameObject();
-    player->scale = 2;
+    player->scale = 1.2;
 
     auto pcc = std::make_unique<PlayerControllerComponent>(ctx, player);
     auto rc = std::make_unique<RenderComponent>(ctx, player);
@@ -35,21 +38,83 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
 
     return player_controller_raw;
 }
+
+GameManager* GameManager::instance = nullptr;
+GameManager* GameManager::getInstance() {
+    return instance;
+}
+
+GameState GameManager::GetGameState() {
+    return state;
+}
+
 void GameManager::Start() {
+    state = MainMenu;
+
     auto player = spawnPlayer();
 
-    Vector2 middle = {
-        GetScreenWidth() / 2.0f,
-        GetScreenHeight() / 2.0f,
-    };
+    Vector2 middle = ScreenCenter();
 
     player->gameObject->pos = middle;
 }
 void GameManager::Update() {
-
+    
 }
 void GameManager::End() {
 
+}
+
+// === UI Manager ===
+
+UIManager::UIManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {}
+void UIManager::CreateUIManager(GameContext *ctx) {
+    auto uim = ctx->NewGameObject();
+
+    // auto uimc = std::make_unique<UIManager>(ctx, uim);
+    // uim->AddComponent(std::move(uimc));
+}
+
+void UIManager::renderStartScreen() {
+    std::string title = "Asteroids!";
+
+    float spacing = 5;
+    float fontSize = 25;
+    Vector2 pos = ScreenCenter(); pos.y = 20;
+    Vector2 origin = MeasureTextEx(GetFontDefault(), title.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
+
+    DrawTextPro(
+        GetFontDefault(), 
+        title.c_str(), 
+        pos, origin, 
+        0, 
+        fontSize, spacing, RED);
+}
+
+void UIManager::renderGameScreen() {
+
+}
+
+void UIManager::renderEndScreen() {
+
+}
+
+void UIManager::Start() {
+    spdlog::info("Dupsko");
+}
+
+void UIManager::Update() {
+    // GameManager* gm = GameManager::getInstance();
+    // switch(gm->GetGameState()) {
+    //     case MainMenu: renderStartScreen(); break;
+    //     case Game: renderGameScreen(); break;
+    //     case GameOver: renderEndScreen(); break;
+    // }
+}
+
+void UIManager::End() {
+    
 }
 
 // === Player Component ===
@@ -87,8 +152,17 @@ void PlayerControllerComponent::Update() {
 
     // Check if out of bounds
     {
-        if(player)
-    }
+        Rectangle screenArea = {
+            0,
+            0, 
+            static_cast<float>(GetScreenWidth()), 
+            static_cast<float>(GetScreenWidth())
+        };
+
+      if(!InsideRec(screenArea, gameObject->pos)) {
+        gameObject->pos = ScreenCenter();
+      }
+    ;}
 }
 
 // === Render Component ===

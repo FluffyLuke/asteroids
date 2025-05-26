@@ -15,7 +15,43 @@ namespace texture_names {
 
 // === Utils ===
 
-bool InsideRec()
+Vector2 ScreenCenter();
+
+bool InsideRec(Rectangle rec, Vector2 point);
+
+// https://gist.github.com/bosley/6e844b7d0f53e807fed0fd8c33828e80
+template<typename T>
+class Subscriber {
+    public:
+
+    virtual ~Subscriber() = default;
+    virtual void RecvPublishedData(T);
+};
+
+template<typename T>
+class Publisher {
+    private:
+
+    std::vector<Subscriber<T>*> subscribers;
+
+    public:
+
+    virtual ~Publisher() = default;
+    int GetSubscriberCount() const {
+
+        return subscribers.size();
+    }
+
+    void RegisterSubscriber(Subscriber<T> & subscriber) {
+        subscribers.push_back(&subscriber);
+    }
+
+    void PublishData(std::string data) {
+        for(auto &subscriber : subscribers) {
+            subscriber->RecvPublishedData(data);
+        }
+    }
+};
 
 // === Main stuff === 
 
@@ -88,21 +124,42 @@ class RenderComponent : public IComponent {
     void Update();
 };
 
+enum GameState {
+    MainMenu,
+    Game,
+    GameOver,
+};
+
 class GameManager : public IComponent {
     private:
+
+    GameState state;
     PlayerControllerComponent* spawnPlayer();
+    static GameManager* instance;
 
     public:
+    GameManager(const GameManager& obj) = delete;
+    GameManager(GameContext* ctx, GameObject* gameObject);
+
+    static GameManager* getInstance();
     
     static void CreateGameManager(GameContext* ctx);
 
-    GameManager(GameContext* ctx, GameObject* gameObject);
+    void StartGame();
+    GameState GetGameState();
+
     void Start();
     void Update();
     void End();
 };
 
 class UIManager : public IComponent {
+    private:
+
+    void renderStartScreen();
+    void renderGameScreen();
+    void renderEndScreen();
+
     public:
     
     static void CreateUIManager(GameContext* ctx);
@@ -112,9 +169,7 @@ class UIManager : public IComponent {
     void Update();
     void End();
 
-    void ShowStartScreen();
-    void ShowGameScreen();
-    void ShowEndScreen();
+    void RecvPublishedData(GameState);
 };
 
 // === Resources ===
