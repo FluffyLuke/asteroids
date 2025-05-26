@@ -70,8 +70,8 @@ UIManager::UIManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, 
 void UIManager::CreateUIManager(GameContext *ctx) {
     auto uim = ctx->NewGameObject();
 
-    // auto uimc = std::make_unique<UIManager>(ctx, uim);
-    // uim->AddComponent(std::move(uimc));
+    auto uimc = std::make_unique<UIManager>(ctx, uim);
+    uim->AddComponent(std::move(uimc));
 }
 
 void UIManager::renderStartScreen() {
@@ -105,12 +105,12 @@ void UIManager::Start() {
 }
 
 void UIManager::Update() {
-    // GameManager* gm = GameManager::getInstance();
-    // switch(gm->GetGameState()) {
-    //     case MainMenu: renderStartScreen(); break;
-    //     case Game: renderGameScreen(); break;
-    //     case GameOver: renderEndScreen(); break;
-    // }
+    GameManager* gm = GameManager::getInstance();
+    switch(gm->GetGameState()) {
+        case MainMenu: renderStartScreen(); break;
+        case Game: renderGameScreen(); break;
+        case GameOver: renderEndScreen(); break;
+    }
 }
 
 void UIManager::End() {

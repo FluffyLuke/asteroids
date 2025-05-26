@@ -17,8 +17,8 @@ int main() {
     InitWindow(720, 600, "Asteroids");
     SetTargetFPS(60);
 
-    GameManager::CreateGameManager(&ctx);
     UIManager::CreateUIManager(&ctx);
+    GameManager::CreateGameManager(&ctx);
 
     LoadAllResources(&ctx);
 
@@ -26,7 +26,7 @@ int main() {
     for(auto&& go : ctx.gameObjects) {
         for(auto&& c : go->components) {
             c->Start();
-            spdlog::info("NIGGER");
+            spdlog::info("Created");
         }
     }
     while(!WindowShouldClose()) {
