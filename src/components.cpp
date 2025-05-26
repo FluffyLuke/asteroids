@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <memory>
+#include <string>
 
 #include "raylib.h"
 #include "raymath.h"
@@ -36,6 +37,9 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
     player->AddComponent(std::move(pcc));
     player->AddComponent(std::move(rc));
 
+    Vector2 middle = ScreenCenter();
+    player_controller_raw->gameObject->pos = middle;
+
     return player_controller_raw;
 }
 
@@ -48,20 +52,22 @@ GameState GameManager::GetGameState() {
     return state;
 }
 
+void GameManager::StartGame() {
+    spawnPlayer();
+    state = Game;
+    timeAlive = 0;
+}
+
 void GameManager::Start() {
     state = MainMenu;
-
-    auto player = spawnPlayer();
-
-    Vector2 middle = ScreenCenter();
-
-    player->gameObject->pos = middle;
 }
+
 void GameManager::Update() {
-    
+    timeAlive += GetFrameTime();
 }
-void GameManager::End() {
 
+void GameManager::End() {
+    
 }
 
 // === UI Manager ===
@@ -77,9 +83,9 @@ void UIManager::CreateUIManager(GameContext *ctx) {
 void UIManager::renderStartScreen() {
     std::string title = "Asteroids!";
 
-    float spacing = 5;
-    float fontSize = 25;
-    Vector2 pos = ScreenCenter(); pos.y = 20;
+    float spacing = 10;
+    float fontSize = 100;
+    Vector2 pos = ScreenCenter(); pos.y = 75;
     Vector2 origin = MeasureTextEx(GetFontDefault(), title.c_str(), fontSize, spacing);
     origin.y = origin.y / 2;
     origin.x = origin.x / 2;
@@ -89,25 +95,89 @@ void UIManager::renderStartScreen() {
         title.c_str(), 
         pos, origin, 
         0, 
-        fontSize, spacing, RED);
+        fontSize, spacing, RED
+    );
+
+    std::string startText = "Press \"space\" to start";
+
+    fontSize = 24;
+    pos = ScreenCenter();
+    origin = MeasureTextEx(GetFontDefault(), startText.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
+
+    DrawTextPro(
+        GetFontDefault(), 
+        startText.c_str(), 
+        pos, origin, 
+        0, 
+        fontSize, spacing, RED
+    );
 }
 
 void UIManager::renderGameScreen() {
+    GameManager* gm = GameManager::getInstance();
 
+    std::string time = std::to_string((int)gm->timeAlive);
+
+    float spacing = 10;
+    float fontSize = 48;
+    Vector2 pos {
+        ScreenCenter().x,
+        GetScreenHeight() - 30.0f,
+    };
+    Vector2 origin = MeasureTextEx(GetFontDefault(), time.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
+
+    DrawTextPro(
+        GetFontDefault(), 
+        time.c_str(), 
+        pos, origin, 
+        0, 
+        fontSize, spacing, RED
+    );
 }
 
 void UIManager::renderEndScreen() {
+    std::string gameOverText = "Game Over";
+    std::string tryAgainText = "Press \"Space\" to try again";
 
+    float spacing = 10;
+    float fontSize = 100;
+    Vector2 pos = ScreenCenter();
+    Vector2 origin = MeasureTextEx(GetFontDefault(), gameOverText.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
+
+    DrawTextPro(
+        GetFontDefault(), 
+        gameOverText.c_str(), 
+        pos, origin, 
+        0, 
+        fontSize, spacing, RED
+    );
+
+    fontSize = 48;
+    pos.y += 60;
+    origin = MeasureTextEx(GetFontDefault(), tryAgainText.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
 }
 
 void UIManager::Start() {
-    spdlog::info("Dupsko");
+    
 }
 
-void UIManager::Update() {
+void UIManager::LateUpdate() {
     GameManager* gm = GameManager::getInstance();
     switch(gm->GetGameState()) {
-        case MainMenu: renderStartScreen(); break;
+        case MainMenu: {
+            renderStartScreen();
+            if(IsKeyPressed(KEY_SPACE)) {
+                gm->StartGame();
+            }
+        } break;
         case Game: renderGameScreen(); break;
         case GameOver: renderEndScreen(); break;
     }
@@ -144,7 +214,7 @@ void PlayerControllerComponent::Update() {
         gameObject->pos.x += moveVector.x;
         gameObject->pos.y += moveVector.y;
 
-        spdlog::debug("Player movement:");
+        spdlog::debug("- Player movement -");
         spdlog::debug("Player position: x{}, y{}", gameObject->pos.x, gameObject->pos.y);
         spdlog::debug("Player rotation: {}", gameObject->rotation);
         spdlog::debug("Move vector: x{}, y{}", moveVector.x, moveVector.y);
@@ -156,7 +226,7 @@ void PlayerControllerComponent::Update() {
             0,
             0, 
             static_cast<float>(GetScreenWidth()), 
-            static_cast<float>(GetScreenWidth())
+            static_cast<float>(GetScreenHeight())
         };
 
       if(!InsideRec(screenArea, gameObject->pos)) {

@@ -2,6 +2,7 @@
 #define __GAME__
 
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -66,15 +67,19 @@ class GameObject {
 
     public:
 
-    std::vector<std::unique_ptr<IComponent>> components;
     Vector2 pos;
     float scale = 1;
     float rotation = 0;
+    std::vector<std::unique_ptr<IComponent>> components;
 
     GameObject(GameContext* ctx);
     void AddComponent(std::unique_ptr<IComponent> component);
     template<class TComponent>
     void RemoveComponent();
+    
+    template<typename T>
+    std::optional<T*> FindComponent();
+    void Destroy();
 };
 
 class GameContext {
@@ -84,7 +89,7 @@ class GameContext {
     ~GameContext(); // declaration only
 
     std::unique_ptr<ResourceManager> resourceManager;
-    std::vector<std::unique_ptr<GameObject>> gameObjects;
+    std::list<std::unique_ptr<GameObject>> gameObjects;
     // std::shared_ptr<GameObject> NewGameObject() {
     GameObject* NewGameObject();
 };
@@ -105,6 +110,7 @@ class IComponent {
     // Life time function
     virtual void Start() {};
     virtual void Update() {};
+    virtual void LateUpdate() {};
     virtual void End() {};
 
     virtual ~IComponent() {};
@@ -114,6 +120,7 @@ class PlayerControllerComponent : public IComponent {
     public:
 
     PlayerControllerComponent(GameContext* ctx, GameObject* gameObject);
+
     void Update();
 };
 
@@ -133,14 +140,18 @@ enum GameState {
 class GameManager : public IComponent {
     private:
 
-    GameState state;
-    PlayerControllerComponent* spawnPlayer();
     static GameManager* instance;
 
+    GameState state;
+
+    PlayerControllerComponent* spawnPlayer();
+
     public:
+
+    float timeAlive;
+
     GameManager(const GameManager& obj) = delete;
     GameManager(GameContext* ctx, GameObject* gameObject);
-
     static GameManager* getInstance();
     
     static void CreateGameManager(GameContext* ctx);
@@ -166,7 +177,7 @@ class UIManager : public IComponent {
 
     UIManager(GameContext* ctx, GameObject* gameObject);
     void Start();
-    void Update();
+    void LateUpdate();
     void End();
 
     void RecvPublishedData(GameState);

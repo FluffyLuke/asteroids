@@ -3,6 +3,7 @@
 #include "game.hpp"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 
@@ -19,6 +20,30 @@ void GameObject::RemoveComponent() {
     std::erase_if(components, [](const std::unique_ptr<IComponent>& c) {
         return dynamic_cast<TComponent*>(c.get()) != nullptr;
     });
+}
+void GameObject::Destroy() {
+
+    auto it = std::find_if(ctx->gameObjects.begin(), ctx->gameObjects.end(),
+        [this](const std::unique_ptr<GameObject>& obj) {
+            return obj.get() == this;
+        });
+
+    if(it != ctx->gameObjects.end()) {
+        
+    } else {
+        spdlog::error("Cannot destroy object?");
+    }
+}
+
+template<typename T>
+std::optional<T*> GameObject::FindComponent() {
+    for(auto&& g : ctx->gameObjects) {
+        for(auto&& c : g->components) {
+            if(T* a = dynamic_cast<T*>(c)) {
+                return std::make_optional(a);
+            }
+        }
+    }
 }
 
 // Game context
