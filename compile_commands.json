@@ -6,12 +6,65 @@
       "-Wall",
       "-std=c++23",
       "-I./libs/spdlog/include",
+      "-I./libs/raylib/src",
+      "-I./include",
       "-o",
-      "src/main.o",
+      "target/components.o",
+      "src/components.cpp"
+    ],
+    "directory": "/home/furras/Workspace/Asteroids",
+    "file": "/home/furras/Workspace/Asteroids/src/components.cpp",
+    "output": "/home/furras/Workspace/Asteroids/target/components.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-std=c++23",
+      "-I./libs/spdlog/include",
+      "-I./libs/raylib/src",
+      "-I./include",
+      "-o",
+      "target/game.o",
+      "src/game.cpp"
+    ],
+    "directory": "/home/furras/Workspace/Asteroids",
+    "file": "/home/furras/Workspace/Asteroids/src/game.cpp",
+    "output": "/home/furras/Workspace/Asteroids/target/game.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-std=c++23",
+      "-I./libs/spdlog/include",
+      "-I./libs/raylib/src",
+      "-I./include",
+      "-o",
+      "target/main.o",
       "src/main.cpp"
     ],
-    "directory": "/home/furras/Workspace/asteroids",
-    "file": "/home/furras/Workspace/asteroids/src/main.cpp",
-    "output": "/home/furras/Workspace/asteroids/src/main.o"
+    "directory": "/home/furras/Workspace/Asteroids",
+    "file": "/home/furras/Workspace/Asteroids/src/main.cpp",
+    "output": "/home/furras/Workspace/Asteroids/target/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-std=c++23",
+      "-I./libs/spdlog/include",
+      "-I./libs/raylib/src",
+      "-I./include",
+      "-o",
+      "target/resources.o",
+      "src/resources.cpp"
+    ],
+    "directory": "/home/furras/Workspace/Asteroids",
+    "file": "/home/furras/Workspace/Asteroids/src/resources.cpp",
+    "output": "/home/furras/Workspace/Asteroids/target/resources.o"
   }
 ]

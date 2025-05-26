@@ -7,5 +7,10 @@ libs/spdlog/build:
 libs/spdlog/build/libspdlog.a: libs/spdlog/build
 	cd libs/spdlog/build; cmake ..; make
 
+raylib: libs/raylib/src/libraylib.a
 
-libs: spdlog
+libs/raylib/src/libraylib.a:
+	cd libs/raylib/src; make PLATFORM=PLATFORM_DESKTOP
+
+
+libs: spdlog raylib
