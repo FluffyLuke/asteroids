@@ -16,6 +16,13 @@ namespace texture_names {
 
 // === Utils ===
 
+using i8 = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
+using f32 = float;
+using f64 = double;
+
 Vector2 ScreenCenter();
 
 bool InsideRec(Rectangle rec, Vector2 point);
@@ -60,38 +67,31 @@ class IComponent;
 class GameContext;
 class ResourceManager;
 
-class GameObject {
-    private:
+using EntityID = i64;
 
-    const GameContext* ctx;
+class GameObject {
+    static i64 index;
 
     public:
 
-    Vector2 pos;
-    float scale = 1;
-    float rotation = 0;
-    std::vector<std::unique_ptr<IComponent>> components;
-
-    GameObject(GameContext* ctx);
-    void AddComponent(std::unique_ptr<IComponent> component);
-    template<class TComponent>
-    void RemoveComponent();
-    
     template<typename T>
-    std::optional<T*> FindComponent();
-    void Destroy();
+    void AddComponent(GameContext* ctx, EntityID id, T component);
+    template<typename T>
+    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id);    
+
+    EntityID New(GameContext* ctx);
+    void Destroy(GameContext* ctx, EntityID id);
 };
 
 class GameContext {
     public:
 
     GameContext();
-    ~GameContext(); // declaration only
+    ~GameContext();
 
     std::unique_ptr<ResourceManager> resourceManager;
-    std::list<std::unique_ptr<GameObject>> gameObjects;
-    // std::shared_ptr<GameObject> NewGameObject() {
-    GameObject* NewGameObject();
+    std::unordered_map<EntityID, std::list<std::unique_ptr<IComponent>>> entities;
+    std::vector<EntityID> deadEntities;
 };
 
 // === Components ===
@@ -100,12 +100,11 @@ class IComponent {
     protected:
 
     GameContext* ctx;
+    EntityID id;
 
     public:
 
-    GameObject* gameObject;
-
-    IComponent(GameContext* ctx, GameObject* gameObject);
+    IComponent(GameContext* ctx, EntityID gameObject);
 
     // Life time function
     virtual void Start() {};
@@ -119,7 +118,7 @@ class IComponent {
 class PlayerControllerComponent : public IComponent {
     public:
 
-    PlayerControllerComponent(GameContext* ctx, GameObject* gameObject);
+    PlayerControllerComponent(GameContext* ctx, EntityID gameObject);
 
     void Update();
 };
@@ -127,7 +126,7 @@ class PlayerControllerComponent : public IComponent {
 class RenderComponent : public IComponent {
     public:
     
-    RenderComponent(GameContext* ctx, GameObject* gameObject);
+    RenderComponent(GameContext* ctx, EntityID id);
     void Update();
 };
 
@@ -151,7 +150,7 @@ class GameManager : public IComponent {
     float timeAlive;
 
     GameManager(const GameManager& obj) = delete;
-    GameManager(GameContext* ctx, GameObject* gameObject);
+    GameManager(GameContext* ctx, EntityID id);
     static GameManager* getInstance();
     
     static void CreateGameManager(GameContext* ctx);
@@ -175,7 +174,7 @@ class UIManager : public IComponent {
     
     static void CreateUIManager(GameContext* ctx);
 
-    UIManager(GameContext* ctx, GameObject* gameObject);
+    UIManager(GameContext* ctx, EntityID id);
     void Start();
     void LateUpdate();
     void End();

@@ -53,6 +53,11 @@ int main(int argc, char ** argv) {
             }
         }
 
+        for(auto&& e : ctx.deadEntities) {
+            ctx.entities.erase(e);
+        }
+        ctx.deadEntities.clear();
+
         EndDrawing();
     }
     for(auto&& gm : ctx.gameObjects) {

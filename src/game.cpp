@@ -4,56 +4,51 @@
 
 #include <memory>
 #include <optional>
-#include <vector>
+#include <stdexcept>
 
 
 // Game object
-GameObject::GameObject(GameContext* ctx) {
-    this->ctx = ctx;
-    pos = {0, 0};
-}
-void GameObject::AddComponent(std::unique_ptr<IComponent> component) {
-    components.push_back(std::move(component));
-}
-template<class TComponent>
-void GameObject::RemoveComponent() {
-    std::erase_if(components, [](const std::unique_ptr<IComponent>& c) {
-        return dynamic_cast<TComponent*>(c.get()) != nullptr;
-    });
-}
-void GameObject::Destroy() {
 
-    auto it = std::find_if(ctx->gameObjects.begin(), ctx->gameObjects.end(),
-        [this](const std::unique_ptr<GameObject>& obj) {
-            return obj.get() == this;
-        });
+i64 GameObject::index = 0;
 
-    if(it != ctx->gameObjects.end()) {
-        
-    } else {
-        spdlog::error("Cannot destroy object?");
+template<typename T>
+void GameObject::AddComponent(GameContext* ctx, EntityID id, T component) {
+    try {
+        auto components = ctx->entities.at(id);
+        components.push_back(component);
+    } catch(std::out_of_range e) {
+        spdlog::error("Entity ID {} not found: {}", id, e.what());
     }
 }
 
 template<typename T>
-std::optional<T*> GameObject::FindComponent() {
-    for(auto&& g : ctx->gameObjects) {
-        for(auto&& c : g->components) {
-            if(T* a = dynamic_cast<T*>(c)) {
-                return std::make_optional(a);
+std::optional<T*> GameObject::FindComponent(GameContext* ctx, EntityID id) {
+    try {
+        auto& components = ctx->entities.at(id);
+        for(auto&& c : components) {
+            if(auto ptr = dynamic_cast<T*>(c.get())) {
+                return std::optional<T*>{ptr};
             }
         }
+    } catch(const std::out_of_range& e) {
+        spdlog::error("Entity ID {} not found: {}", id, e.what());
     }
+
+    return std::nullopt;
+}
+
+EntityID GameObject::New(GameContext* ctx) {
+    EntityID nextID = index;
+    ctx->entities.insert({nextID, std::list<std::unique_ptr<IComponent>>()});
+    index++;
+    return nextID;
+}
+
+void GameObject::Destroy(GameContext* ctx, EntityID id) {
+    ctx->deadEntities.push_back(id);
 }
 
 // Game context
-GameObject* GameContext::NewGameObject() {
-    auto gm = std::make_unique<GameObject>(this);
-    GameObject* gmRaw = gm.get();
-    gameObjects.push_back(std::move(gm));
-    return gmRaw;
-}
-
 GameContext::GameContext() 
     : resourceManager(std::make_unique<ResourceManager>()) {}
 GameContext::~GameContext() = default;
