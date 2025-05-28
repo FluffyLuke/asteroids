@@ -78,9 +78,18 @@ class Entity {
     static void AddComponent(GameContext* ctx, EntityID id, std::unique_ptr<IComponent> component);
     static EntityComponent* GetEntityComponent(GameContext* ctx, EntityID id);
     template<typename T>
-    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id); 
+    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id);
+    
+    static std::optional<EntityID> GetEntityByName(GameContext* ctx, std::string name);
 
     static EntityID New(GameContext* ctx);
+    static EntityID New(GameContext* ctx, EntityID parent_id);
+    static EntityID New(GameContext* ctx, EntityComponent* parent);
+
+    static EntityID New(GameContext* ctx, std::string name);
+    static EntityID New(GameContext* ctx, EntityID parent_id, std::string name);
+    static EntityID New(GameContext* ctx, EntityComponent* parent, std::string name);
+
     void Destroy(GameContext* ctx, EntityID id);
 };
 
@@ -92,6 +101,8 @@ class GameContext {
 
     std::unique_ptr<ResourceManager> resourceManager;
     std::unordered_map<EntityID, std::list<std::unique_ptr<IComponent>>> entities;
+    std::vector<EntityID> topEntities;
+
     std::vector<EntityID> deadEntities;
 };
 
@@ -107,10 +118,10 @@ class IComponent {
 
     IComponent(GameContext* ctx, EntityID id);
 
-    // Life time function
+    EntityID GetID();
+
     virtual void Start() {};
     virtual void Update() {};
-    virtual void LateUpdate() {};
     virtual void End() {};
 
     virtual ~IComponent() {};
@@ -119,9 +130,12 @@ class IComponent {
 class EntityComponent : public IComponent {
     public:
 
+    std::string name;
     Vector2 pos;
     Vector2 scale;
     float rotation;
+
+    std::optional<EntityID> parent;
     std::vector<EntityID> children;
 
     EntityComponent(GameContext* ctx, EntityID id);
@@ -188,7 +202,7 @@ class UIManager : public IComponent {
 
     UIManager(GameContext* ctx, EntityID id);
     void Start();
-    void LateUpdate();
+    void Update();
     void End();
 
     void RecvPublishedData(GameState);

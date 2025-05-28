@@ -13,9 +13,14 @@ IComponent::IComponent(GameContext* ctx, EntityID id) {
     this->id = id;
 }
 
+EntityID IComponent::GetID() {
+    return id;
+}
+
 // === Entity Component ===
 
 EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
+    name = "Empty";
     pos = {0,0};
     scale = {1,1};
     rotation = 0;
@@ -34,7 +39,9 @@ void GameManager::CreateGameManager(GameContext* ctx) {
 }
 
 PlayerControllerComponent* GameManager::spawnPlayer() {
-    EntityID player = Entity::New(ctx);
+
+    std::optional entity_mainGame = Entity::GetEntityByName(ctx, "UI");
+    EntityID player = Entity::New(ctx, entity_mainGame.value());
     EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
 
     playerEntity->scale = {1.2, 1.2};
@@ -84,7 +91,9 @@ void GameManager::End() {
 
 UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 void UIManager::CreateUIManager(GameContext *ctx) {
-    auto uim = Entity::New(ctx);
+
+    std::optional entity_ui = Entity::GetEntityByName(ctx, "UI");
+    auto uim = Entity::New(ctx, entity_ui.value());
 
     auto uimc = std::make_unique<UIManager>(ctx, uim);
     Entity::AddComponent(ctx, uim, std::move(uimc));
@@ -179,7 +188,7 @@ void UIManager::Start() {
     
 }
 
-void UIManager::LateUpdate() {
+void UIManager::Update() {
     GameManager* gm = GameManager::getInstance();
     switch(gm->GetGameState()) {
         case MainMenu: {
