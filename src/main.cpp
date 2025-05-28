@@ -30,8 +30,8 @@ int main(int argc, char ** argv) {
     LoadAllResources(&ctx);
 
     spdlog::info("Starting game!");
-    for(auto&& go : ctx.gameObjects) {
-        for(auto&& c : go->components) {
+    for(auto&& e : ctx.entities) {
+        for(auto&& c : e.second) {
             c->Start();
         }
     }
@@ -41,27 +41,31 @@ int main(int argc, char ** argv) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        for(auto&& gm : ctx.gameObjects) {
-            for(auto&& c : gm->components) {
+        for(auto&& e : ctx.entities) {
+            for(auto&& c : e.second) {
                 c->Update();
             }
         }
 
-        for(auto&& gm : ctx.gameObjects) {
-            for(auto&& c : gm->components) {
+        for(auto&& e : ctx.entities) {
+            for(auto&& c : e.second) {
                 c->LateUpdate();
             }
         }
 
         for(auto&& e : ctx.deadEntities) {
+            auto& components = ctx.entities.at(e);
+            for(auto&& c : components) {
+                c->End();
+            }
             ctx.entities.erase(e);
         }
         ctx.deadEntities.clear();
 
         EndDrawing();
     }
-    for(auto&& gm : ctx.gameObjects) {
-        for(auto&& c : gm->components) {
+    for(auto&& gm : ctx.entities) {
+        for(auto&& c : gm.second) {
             c->End();
         }
     }

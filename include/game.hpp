@@ -66,20 +66,21 @@ class Publisher {
 class IComponent;
 class GameContext;
 class ResourceManager;
+class EntityComponent;
 
 using EntityID = i64;
 
-class GameObject {
+class Entity {
     static i64 index;
 
     public:
 
+    static void AddComponent(GameContext* ctx, EntityID id, std::unique_ptr<IComponent> component);
+    static EntityComponent* GetEntityComponent(GameContext* ctx, EntityID id);
     template<typename T>
-    void AddComponent(GameContext* ctx, EntityID id, T component);
-    template<typename T>
-    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id);    
+    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id); 
 
-    EntityID New(GameContext* ctx);
+    static EntityID New(GameContext* ctx);
     void Destroy(GameContext* ctx, EntityID id);
 };
 
@@ -104,7 +105,7 @@ class IComponent {
 
     public:
 
-    IComponent(GameContext* ctx, EntityID gameObject);
+    IComponent(GameContext* ctx, EntityID id);
 
     // Life time function
     virtual void Start() {};
@@ -115,10 +116,21 @@ class IComponent {
     virtual ~IComponent() {};
 };
 
+class EntityComponent : public IComponent {
+    public:
+
+    Vector2 pos;
+    Vector2 scale;
+    float rotation;
+    std::vector<EntityID> children;
+
+    EntityComponent(GameContext* ctx, EntityID id);
+};
+
 class PlayerControllerComponent : public IComponent {
     public:
 
-    PlayerControllerComponent(GameContext* ctx, EntityID gameObject);
+    PlayerControllerComponent(GameContext* ctx, EntityID id);
 
     void Update();
 };

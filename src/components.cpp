@@ -8,37 +8,47 @@
 
 // General interface initialization
 
-IComponent::IComponent(GameContext* ctx, GameObject* gameObject) {
+IComponent::IComponent(GameContext* ctx, EntityID id) {
     this->ctx = ctx;
-    this->gameObject = gameObject;
+    this->id = id;
+}
+
+// === Entity Component ===
+
+EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
+    pos = {0,0};
+    scale = {1,1};
+    rotation = 0;
 }
 
 // === Game Manager ===
 
-GameManager::GameManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {
+GameManager::GameManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
     instance = this;
 }
 void GameManager::CreateGameManager(GameContext* ctx) {
-    auto gm = ctx->NewGameObject();
+    EntityID gm = Entity::New(ctx);
 
     auto gmc = std::make_unique<GameManager>(ctx, gm);
-    gm->AddComponent(std::move(gmc));
+    Entity::AddComponent(ctx, gm, std::move(gmc));
 }
 
 PlayerControllerComponent* GameManager::spawnPlayer() {
-    auto player = ctx->NewGameObject();
-    player->scale = 1.2;
+    EntityID player = Entity::New(ctx);
+    EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
+
+    playerEntity->scale = {1.2, 1.2};
 
     auto pcc = std::make_unique<PlayerControllerComponent>(ctx, player);
     auto rc = std::make_unique<RenderComponent>(ctx, player);
 
     PlayerControllerComponent* player_controller_raw = pcc.get();
 
-    player->AddComponent(std::move(pcc));
-    player->AddComponent(std::move(rc));
+    Entity::AddComponent(ctx, player, std::move(pcc));
+    Entity::AddComponent(ctx, player, std::move(rc));
 
     Vector2 middle = ScreenCenter();
-    player_controller_raw->gameObject->pos = middle;
+    playerEntity->pos = middle;
 
     return player_controller_raw;
 }
@@ -72,12 +82,12 @@ void GameManager::End() {
 
 // === UI Manager ===
 
-UIManager::UIManager(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {}
+UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 void UIManager::CreateUIManager(GameContext *ctx) {
-    auto uim = ctx->NewGameObject();
+    auto uim = Entity::New(ctx);
 
     auto uimc = std::make_unique<UIManager>(ctx, uim);
-    uim->AddComponent(std::move(uimc));
+    Entity::AddComponent(ctx, uim, std::move(uimc));
 }
 
 void UIManager::renderStartScreen() {
@@ -189,8 +199,9 @@ void UIManager::End() {
 
 // === Player Component ===
 
-PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {}
+PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 void PlayerControllerComponent::Update() {
+    EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
 
     // Movement
     {
@@ -198,25 +209,25 @@ void PlayerControllerComponent::Update() {
 
         // Rotate player
         if(IsKeyDown(KEY_A)) {
-            gameObject->rotation -= 200 * GetFrameTime();
+            playerEntity->rotation -= 200 * GetFrameTime();
         }
         if(IsKeyDown(KEY_D)) {
-            gameObject->rotation += 200 * GetFrameTime();
+            playerEntity->rotation += 200 * GetFrameTime();
         }
 
         if(IsKeyDown(KEY_W)) {
             moveVector.x += 400 * GetFrameTime();
         }
 
-        float rotation = DEG2RAD * gameObject->rotation;
+        float rotation = DEG2RAD * playerEntity->rotation;
 
         moveVector = Vector2Rotate(moveVector, rotation);
-        gameObject->pos.x += moveVector.x;
-        gameObject->pos.y += moveVector.y;
+        playerEntity->pos.x += moveVector.x;
+        playerEntity->pos.y += moveVector.y;
 
         spdlog::debug("- Player movement -");
-        spdlog::debug("Player position: x{}, y{}", gameObject->pos.x, gameObject->pos.y);
-        spdlog::debug("Player rotation: {}", gameObject->rotation);
+        spdlog::debug("Player position: x{}, y{}", playerEntity->pos.x, playerEntity->pos.y);
+        spdlog::debug("Player rotation: {}", playerEntity->rotation);
         spdlog::debug("Move vector: x{}, y{}", moveVector.x, moveVector.y);
     }
 
@@ -229,22 +240,24 @@ void PlayerControllerComponent::Update() {
             static_cast<float>(GetScreenHeight())
         };
 
-      if(!InsideRec(screenArea, gameObject->pos)) {
-        gameObject->pos = ScreenCenter();
+      if(!InsideRec(screenArea, playerEntity->pos)) {
+        playerEntity->pos = ScreenCenter();
       }
     ;}
 }
 
 // === Render Component ===
 
-RenderComponent::RenderComponent(GameContext* ctx, GameObject* gameObject): IComponent(ctx, gameObject) {}
+RenderComponent::RenderComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 void RenderComponent::Update() {
+    EntityComponent* entity = Entity::GetEntityComponent(ctx, id);
+
     std::optional<Texture2DResource> result = ctx->resourceManager->GetTexture(texture_names::PlayerTexture);
     if(result.has_value()) {
         Texture2DResource texture = result.value();
 
-        Vector2 pos = gameObject->pos;
-        Vector2 destSize = {texture.GetFrameSize().x * gameObject->scale, texture.GetFrameSize().y * gameObject->scale};
+        Vector2 pos = entity->pos;
+        Vector2 destSize = {texture.GetFrameSize().x * entity->scale.x, texture.GetFrameSize().y * entity->scale.y};
         Vector2 origin;
         origin.x = destSize.x/2;
         origin.y = destSize.y/2;
@@ -254,7 +267,7 @@ void RenderComponent::Update() {
             texture.GetFrame(0), 
             {pos.x, pos.y, destSize.x,destSize.y}, 
             origin, 
-            gameObject->rotation + 90, 
+            entity->rotation + 90, 
             WHITE
             );
     } else {
