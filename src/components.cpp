@@ -187,6 +187,20 @@ void UIManager::renderEndScreen() {
         fontSize, spacing, RED
     );
 
+    pos.y += 50;
+    fontSize = 24;
+    origin = MeasureTextEx(GetFontDefault(), tryAgainText.c_str(), fontSize, spacing);
+    origin.y = origin.y / 2;
+    origin.x = origin.x / 2;
+
+    DrawTextPro(
+        GetFontDefault(), 
+        tryAgainText.c_str(), 
+        pos, origin, 
+        0, 
+        fontSize, spacing, RED
+    );
+
     fontSize = 48;
     pos.y += 60;
     origin = MeasureTextEx(GetFontDefault(), tryAgainText.c_str(), fontSize, spacing);
