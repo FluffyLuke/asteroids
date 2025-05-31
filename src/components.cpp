@@ -19,7 +19,9 @@ EntityID IComponent::GetID() {
 
 // === Entity Component ===
 
-EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
+EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
+    Start();
+}
 void EntityComponent::Start() {}
 
 // === Game Manager ===
@@ -28,6 +30,7 @@ GameManager::GameManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
     //printf("this->ctx = %p\n", this->ctx);
     this->instance = this;
     this->instance->ctx = ctx;
+    Start();
 }
 void GameManager::CreateGameManager(GameContext* ctx) {
     EntityID gm = Entity::New(ctx);
@@ -61,7 +64,6 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
 
     Vector2 middle = ScreenCenter();
     playerEntity->pos = middle;
-    spdlog::info("Dupa {}, {}", middle.x, middle.y);
 
     return playerControllerRaw;
 }
@@ -95,7 +97,9 @@ void GameManager::End() {
 
 // === UI Manager ===
 
-UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
+UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
+    Start();
+}
 void UIManager::CreateUIManager(GameContext *ctx) {
 
     std::optional entity_ui = Entity::GetEntityByName(ctx, "UI");
@@ -219,12 +223,14 @@ void UIManager::End() {
 
 // === Player Component ===
 
+PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {
+    Start();
+}
+
 void PlayerControllerComponent::Die() {
     PublishData(PlayerEvent::PlayerDied);
     Entity::Destroy(ctx, id);
 }
-
-PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 
 void PlayerControllerComponent::Update() {
     EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
@@ -269,12 +275,15 @@ void PlayerControllerComponent::Update() {
       if(!InsideRec(screenArea, playerEntity->pos)) {
         Die();
       }
-    ;}
+    }
 }
 
 // === Render Component ===
 
-RenderComponent::RenderComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
+RenderComponent::RenderComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {
+    Start();
+}
+
 void RenderComponent::Update() {
     EntityComponent* entity = Entity::GetEntityComponent(ctx, id);
 

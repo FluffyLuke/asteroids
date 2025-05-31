@@ -79,8 +79,10 @@ class Entity {
     static EntityComponent* GetEntityComponent(GameContext* ctx, EntityID id);
     template<typename T>
     static std::optional<T*> FindComponent(GameContext* ctx, EntityID id);
-    
     static std::optional<EntityID> GetEntityByName(GameContext* ctx, std::string name);
+
+    static void SetParent(GameContext* ctx, EntityID child_id, EntityID newParent_id);
+    static bool RemoveParent(GameContext* ctx, EntityID child_id);
 
     static EntityID New(GameContext* ctx);
     static EntityID New(GameContext* ctx, EntityID parent_id);

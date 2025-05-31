@@ -24,7 +24,7 @@ int main(int argc, char ** argv) {
     GameContext ctx{};
 
     InitWindow(720, 600, "Asteroids");
-    SetTargetFPS(60);
+    SetTargetFPS(5);
 
     // Make top level objects 
     CreateTopLevelObjects(&ctx);
@@ -40,10 +40,9 @@ int main(int argc, char ** argv) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        ctx.newEntities.clear();
-
         std::vector<EntityID> currentEntities;
         for(EntityID id : ctx.topEntities) {
+            //spdlog::info("INSERTING ENTITY!");
             currentEntities.push_back(id);
         }
 
@@ -65,6 +64,7 @@ int main(int argc, char ** argv) {
             for(auto&& c : components) {
                 c->End();
             }
+            Entity::RemoveParent(&ctx, e);
             ctx.entities.erase(e);
         }
         ctx.deadEntities.clear();
