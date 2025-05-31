@@ -19,17 +19,15 @@ EntityID IComponent::GetID() {
 
 // === Entity Component ===
 
-EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
-    name = "Empty";
-    pos = {0,0};
-    scale = {1,1};
-    rotation = 0;
-}
+EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
+void EntityComponent::Start() {}
 
 // === Game Manager ===
 
 GameManager::GameManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
-    instance = this;
+    //printf("this->ctx = %p\n", this->ctx);
+    this->instance = this;
+    this->instance->ctx = ctx;
 }
 void GameManager::CreateGameManager(GameContext* ctx) {
     EntityID gm = Entity::New(ctx);
@@ -38,9 +36,15 @@ void GameManager::CreateGameManager(GameContext* ctx) {
     Entity::AddComponent(ctx, gm, std::move(gmc));
 }
 
-PlayerControllerComponent* GameManager::spawnPlayer() {
+void GameManager::ReceiveData(PlayerEvent::PlayerEvent e) {
+    if(e == PlayerEvent::PlayerDied) {
+        state = GameOver;
+    }
+}
 
-    std::optional entity_mainGame = Entity::GetEntityByName(ctx, "UI");
+PlayerControllerComponent* GameManager::spawnPlayer() {
+    std::optional entity_mainGame = Entity::GetEntityByName(ctx, "MainGame");
+
     EntityID player = Entity::New(ctx, entity_mainGame.value());
     EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
 
@@ -49,15 +53,17 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
     auto pcc = std::make_unique<PlayerControllerComponent>(ctx, player);
     auto rc = std::make_unique<RenderComponent>(ctx, player);
 
-    PlayerControllerComponent* player_controller_raw = pcc.get();
+    PlayerControllerComponent* playerControllerRaw = pcc.get();
+    playerControllerRaw->RegisterSubscriber(*this);
 
     Entity::AddComponent(ctx, player, std::move(pcc));
     Entity::AddComponent(ctx, player, std::move(rc));
 
     Vector2 middle = ScreenCenter();
     playerEntity->pos = middle;
+    spdlog::info("Dupa {}, {}", middle.x, middle.y);
 
-    return player_controller_raw;
+    return playerControllerRaw;
 }
 
 GameManager* GameManager::instance = nullptr;
@@ -198,7 +204,12 @@ void UIManager::Update() {
             }
         } break;
         case Game: renderGameScreen(); break;
-        case GameOver: renderEndScreen(); break;
+        case GameOver: {
+            renderEndScreen();
+            if(IsKeyPressed(KEY_SPACE)) {
+                gm->StartGame();
+            }
+        } break;
     }
 }
 
@@ -208,7 +219,13 @@ void UIManager::End() {
 
 // === Player Component ===
 
+void PlayerControllerComponent::Die() {
+    PublishData(PlayerEvent::PlayerDied);
+    Entity::Destroy(ctx, id);
+}
+
 PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
+
 void PlayerControllerComponent::Update() {
     EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
 
@@ -250,7 +267,7 @@ void PlayerControllerComponent::Update() {
         };
 
       if(!InsideRec(screenArea, playerEntity->pos)) {
-        playerEntity->pos = ScreenCenter();
+        Die();
       }
     ;}
 }

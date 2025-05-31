@@ -50,6 +50,7 @@ std::optional<EntityID> Entity::GetEntityByName(GameContext* ctx, std::string na
 
 EntityID Entity::New(GameContext* ctx) {
     EntityID nextID = index;
+    index++;
 
     std::unique_ptr<EntityComponent> ec = std::make_unique<EntityComponent>(ctx, nextID);
     ec->parent = std::nullopt;
@@ -58,14 +59,15 @@ EntityID Entity::New(GameContext* ctx) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
+    spdlog::info("Inserted new object of id: {}", nextID);
     ctx->topEntities.push_back(nextID);
 
-    index++;
     return nextID;
 }
 
 EntityID Entity::New(GameContext* ctx, EntityComponent* parent) {
     EntityID nextID = index;
+    index++;
 
     std::unique_ptr<EntityComponent> ec = std::make_unique<EntityComponent>(ctx, nextID);
     ec->parent = std::make_optional(parent->GetID());
@@ -74,13 +76,16 @@ EntityID Entity::New(GameContext* ctx, EntityComponent* parent) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
+    spdlog::info("Inserted new object of id: {}", nextID);
     parent->children.push_back(nextID);
-    index++;
+
     return nextID;
 }
 
 EntityID Entity::New(GameContext* ctx, EntityID parent_id) {
     EntityID nextID = index;
+    index++;
+
     EntityComponent* parent = GetEntityComponent(ctx, parent_id);
 
     std::unique_ptr<EntityComponent> ec = std::make_unique<EntityComponent>(ctx, nextID);
@@ -91,8 +96,8 @@ EntityID Entity::New(GameContext* ctx, EntityID parent_id) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
+    spdlog::info("Inserted new object of id: {}", nextID);
     parent->children.push_back(nextID);
-    index++;
     return nextID;
 }
 

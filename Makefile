@@ -2,7 +2,7 @@
 
 CXX := g++
 
-CXXFLAGS := -Wall -std=c++23 -MP -MD \
+CXXFLAGS := -Wall -O0 -std=c++23 -MP -MD -ggdb \
 	-I./libs/spdlog/include \
 	-I./libs/raylib/src \
 	-I./include

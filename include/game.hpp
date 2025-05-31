@@ -33,7 +33,7 @@ class Subscriber {
     public:
 
     virtual ~Subscriber() = default;
-    virtual void RecvPublishedData(T);
+    virtual void ReceiveData(T) = 0;
 };
 
 template<typename T>
@@ -54,9 +54,9 @@ class Publisher {
         subscribers.push_back(&subscriber);
     }
 
-    void PublishData(std::string data) {
+    void PublishData(T data) {
         for(auto &subscriber : subscribers) {
-            subscriber->RecvPublishedData(data);
+            subscriber->ReceiveData(data);
         }
     }
 };
@@ -90,7 +90,7 @@ class Entity {
     static EntityID New(GameContext* ctx, EntityID parent_id, std::string name);
     static EntityID New(GameContext* ctx, EntityComponent* parent, std::string name);
 
-    void Destroy(GameContext* ctx, EntityID id);
+    static void Destroy(GameContext* ctx, EntityID id);
 };
 
 class GameContext {
@@ -130,19 +130,29 @@ class IComponent {
 class EntityComponent : public IComponent {
     public:
 
-    std::string name;
-    Vector2 pos;
-    Vector2 scale;
-    float rotation;
+    std::string name = "Empty";
+    Vector2 pos = {0,0};
+    Vector2 scale = {1, 1};
+    float rotation = 0;
 
     std::optional<EntityID> parent;
     std::vector<EntityID> children;
 
     EntityComponent(GameContext* ctx, EntityID id);
+
+    void Start();
 };
 
-class PlayerControllerComponent : public IComponent {
+namespace PlayerEvent {
+    enum PlayerEvent {
+        PlayerDied
+    };
+}
+
+class PlayerControllerComponent : public IComponent, public Publisher<PlayerEvent::PlayerEvent> {
     public:
+
+    void Die();
 
     PlayerControllerComponent(GameContext* ctx, EntityID id);
 
@@ -162,7 +172,7 @@ enum GameState {
     GameOver,
 };
 
-class GameManager : public IComponent {
+class GameManager : public IComponent, public Subscriber<PlayerEvent::PlayerEvent> {
     private:
 
     static GameManager* instance;
@@ -180,6 +190,7 @@ class GameManager : public IComponent {
     static GameManager* getInstance();
     
     static void CreateGameManager(GameContext* ctx);
+    void ReceiveData(PlayerEvent::PlayerEvent event);
 
     void StartGame();
     GameState GetGameState();

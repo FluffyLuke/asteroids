@@ -6,8 +6,6 @@
 #include "raylib.h"
 #include "game.hpp"
 
-using namespace std;
-
 void LoadAllResources(GameContext* ctx) {
     ctx->resourceManager->LoadTexture(texture_names::PlayerTexture, {30,30}, {1,1}, "./assets/player_placeholder.png");
 }
@@ -29,24 +27,20 @@ int main(int argc, char ** argv) {
     SetTargetFPS(60);
 
     // Make top level objects 
+    CreateTopLevelObjects(&ctx);
 
-    // Create UI manager before game manager. Otherwise program will explode, for reasons 
     UIManager::CreateUIManager(&ctx);
     GameManager::CreateGameManager(&ctx);
 
     LoadAllResources(&ctx);
 
-    spdlog::info("Starting game!");
-    for(auto&& e : ctx.entities) {
-        for(auto&& c : e.second) {
-            c->Start();
-        }
-    }
     while(!WindowShouldClose()) {
         spdlog::debug("=== New iteration ===");
         spdlog::debug("Screen size: x{}, y{}", GetScreenWidth(), GetScreenHeight());
         BeginDrawing();
         ClearBackground(BLACK);
+
+        ctx.newEntities.clear();
 
         std::vector<EntityID> currentEntities;
         for(EntityID id : ctx.topEntities) {
