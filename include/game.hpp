@@ -133,7 +133,7 @@ class EntityComponent : public IComponent {
     public:
 
     std::string name = "Empty";
-    Vector2 pos = {0,0};
+    Vector2 pos = {0, 0};
     Vector2 scale = {1, 1};
     float rotation = 0;
 

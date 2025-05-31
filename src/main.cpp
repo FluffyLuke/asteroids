@@ -24,7 +24,7 @@ int main(int argc, char ** argv) {
     GameContext ctx{};
 
     InitWindow(720, 600, "Asteroids");
-    SetTargetFPS(5);
+    SetTargetFPS(60);
 
     // Make top level objects 
     CreateTopLevelObjects(&ctx);
@@ -35,8 +35,6 @@ int main(int argc, char ** argv) {
     LoadAllResources(&ctx);
 
     while(!WindowShouldClose()) {
-        spdlog::debug("=== New iteration ===");
-        spdlog::debug("Screen size: x{}, y{}", GetScreenWidth(), GetScreenHeight());
         BeginDrawing();
         ClearBackground(BLACK);
 

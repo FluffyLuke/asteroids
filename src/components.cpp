@@ -49,7 +49,7 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
     std::optional entity_mainGame = Entity::GetEntityByName(ctx, "MainGame");
 
     EntityID player = Entity::New(ctx, entity_mainGame.value());
-    EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, id);
+    EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, player);
 
     playerEntity->scale = {1.2, 1.2};
 
