@@ -5,6 +5,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "game.hpp"
+#include "utils.hpp"
 
 // General interface initialization
 
@@ -291,6 +292,40 @@ void PlayerControllerComponent::Update() {
       }
     }
 }
+
+// === Meteor Component ===
+
+MeteorComponent::MeteorComponent(GameContext* ctx, EntityID id) 
+    : IComponent(ctx, id), timeToDeath(15)
+{
+    Start();
+}
+
+void MeteorComponent::Start() {
+    EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
+
+    Vector2 center = ScreenCenter();
+    f32 r = GetRandomValue(50, 100);
+
+    ec->pos = RandomPointOnCircleEdge(center, 1000);
+    Vector2 randomPoint = RandomPointOnCircleEdge(center, r);
+
+    this->moveVector = Vector2Normalize(randomPoint - ec->pos);
+    this->speed = GetRandomValue(200, 300);
+}
+
+void MeteorComponent::Update() {
+    EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
+
+    ec->rotation += (speed/50) * GetFrameTime();
+    ec->pos += this->moveVector * speed;
+
+    if(this->timeToDeath.UpdateCounter(GetFrameTime())) {
+        Entity::Destroy(ctx, this->GetID());
+    }
+}
+
+void MeteorComponent::End() {}
 
 // === Render Component ===
 

@@ -18,6 +18,16 @@ Vector2 ScreenCenter() {
     };
 }
 
+Vector2 RandomPointOnCircleEdge(Vector2 center, f32 radius) {
+    float randomAngle = GetRandomValue(0, 360);
+    // degrees to radians
+    randomAngle *= PI / 180;
+    float edgeX = center.x + radius * cosf(randomAngle);
+    float edgeY = center.y + radius * sinf(randomAngle);
+
+    return {edgeX, edgeY};
+}
+
 bool InsideRec(Rectangle rec, Vector2 point) {
 
     bool a = point.x > rec.x;

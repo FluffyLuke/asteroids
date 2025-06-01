@@ -2,6 +2,7 @@
 #define __GAME__
 
 #include <cstdint>
+#include "utils.hpp"
 #include <list>
 #include <memory>
 #include <optional>
@@ -13,19 +14,6 @@
 namespace texture_names {
     const std::string PlayerTexture = "PlayerTexture";
 }
-
-// === Utils ===
-
-using i8 = int8_t;
-using i16 = int16_t;
-using i32 = int32_t;
-using i64 = int64_t;
-using f32 = float;
-using f64 = double;
-
-Vector2 ScreenCenter();
-
-bool InsideRec(Rectangle rec, Vector2 point);
 
 // https://gist.github.com/bosley/6e844b7d0f53e807fed0fd8c33828e80
 template<typename T>
@@ -219,6 +207,24 @@ class UIManager : public IComponent {
     void End();
 
     void RecvPublishedData(GameState);
+};
+
+class MeteorComponent : public IComponent {
+    private:
+
+    f32 speed = 0;
+    Vector2 moveVector = {0, 0};
+
+    Counter timeToDeath;
+
+    public:
+
+    static void SpawnMeteor(GameContext* ctx);
+
+    MeteorComponent(GameContext* ctx, EntityID id);
+    void Start();
+    void Update();
+    void End();
 };
 
 // === Resources ===
