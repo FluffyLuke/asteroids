@@ -1,8 +1,6 @@
 #ifndef __GAME__
 #define __GAME__
 
-#include <cstdint>
-#include "utils.hpp"
 #include <list>
 #include <memory>
 #include <optional>
@@ -11,9 +9,20 @@
 
 #include "raylib.h"
 
-namespace texture_names {
+#include "spdlog/spdlog.h"
+#include "utils.hpp"
+
+namespace TextureNames {
     const std::string PlayerTexture = "PlayerTexture";
+    const std::string AsteroidTexture = "AsteroidTexture";
 }
+
+// Forward declarations
+
+class IComponent;
+class GameContext;
+class ResourceManager;
+class EntityComponent;
 
 // https://gist.github.com/bosley/6e844b7d0f53e807fed0fd8c33828e80
 template<typename T>
@@ -49,14 +58,51 @@ class Publisher {
     }
 };
 
+// === Resources ===
+
+struct Texture2DResource {
+    Texture2D texture;
+    Vector2 size;
+    Vector2 frames;
+
+    Texture2DResource();
+    Texture2DResource(Texture2D texture, Vector2 size, Vector2 frames);
+
+    Vector2 GetFrameSize();
+
+    Rectangle GetFrame(int frameIndex);
+};
+
+class ResourceManager {
+    private:
+    
+    std::unordered_map<std::string, Texture2DResource> textures;
+
+    public:
+
+    void LoadTexture(std::string textureName, Vector2 size, Vector2 frames, std::string pathToTexture);
+    std::optional<Texture2DResource> GetTexture(std::string textureName);
+    
+    void FreeResources();
+};
+
 // === Main stuff === 
 
-class IComponent;
-class GameContext;
-class ResourceManager;
-class EntityComponent;
-
 using EntityID = i64;
+
+class GameContext {
+    public:
+
+    GameContext();
+    ~GameContext();
+
+    std::unique_ptr<ResourceManager> resourceManager;
+    std::unordered_map<EntityID, std::list<std::unique_ptr<IComponent>>> entities;
+    std::vector<EntityID> topEntities;
+
+    std::vector<EntityID> newEntities;
+    std::vector<EntityID> deadEntities;
+};
 
 class Entity {
     static i64 index;
@@ -66,7 +112,35 @@ class Entity {
     static void AddComponent(GameContext* ctx, EntityID id, std::unique_ptr<IComponent> component);
     static EntityComponent* GetEntityComponent(GameContext* ctx, EntityID id);
     template<typename T>
-    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id);
+    static std::optional<T*> FindComponent(GameContext* ctx, EntityID id) {
+        try {
+            auto& components = ctx->entities.at(id);
+            for(auto&& c : components) {
+                if(auto ptr = dynamic_cast<T*>(c.get())) {
+                    return std::optional<T*>{ptr};
+                }
+            }
+        } catch(const std::out_of_range& e) {
+            spdlog::error("Entity ID {} not found: {}", id, e.what());
+        }
+
+        return std::nullopt;
+    }
+    template<typename T>
+    static std::vector<T*> FindOtherComponents(GameContext* ctx, EntityID id) {
+        std::vector<T*> components;
+
+        for(auto& e : ctx->entities) {
+            for(auto&& c : e.second) {
+                if(id == e.first) continue;
+                if(auto ptr = dynamic_cast<T*>(c.get())) {
+                    components.push_back(ptr);
+                }
+            }
+        }
+
+        return components;
+    }
     static std::optional<EntityID> GetEntityByName(GameContext* ctx, std::string name);
 
     static void SetParent(GameContext* ctx, EntityID child_id, EntityID newParent_id);
@@ -81,19 +155,6 @@ class Entity {
     static EntityID New(GameContext* ctx, EntityComponent* parent, std::string name);
 
     static void Destroy(GameContext* ctx, EntityID id);
-};
-
-class GameContext {
-    public:
-
-    GameContext();
-    ~GameContext();
-
-    std::unique_ptr<ResourceManager> resourceManager;
-    std::unordered_map<EntityID, std::list<std::unique_ptr<IComponent>>> entities;
-    std::vector<EntityID> topEntities;
-
-    std::vector<EntityID> deadEntities;
 };
 
 // === Components ===
@@ -133,25 +194,53 @@ class EntityComponent : public IComponent {
     void Start();
 };
 
-namespace PlayerEvent {
-    enum PlayerEvent {
-        PlayerDied
-    };
-}
+struct ColliderEvent {
+    EntityID collidedWith;
+};
 
-class PlayerControllerComponent : public IComponent, public Publisher<PlayerEvent::PlayerEvent> {
+class ColliderComponent : IComponent, Publisher<ColliderEvent> {
+    private:
+
+    Rectangle area;
+    Vector2 offset;
+
+    public:
+
+    void SetCollider(Vector2 dimensions, Vector2 offset);
+
+    ColliderComponent(GameContext* ctx, EntityID id);
+    void Update();
+};
+
+
+enum PlayerEvent {
+    PlayerDied
+};
+
+class PlayerControllerComponent : 
+    public IComponent, 
+    public Publisher<PlayerEvent>, 
+    public Subscriber<ColliderEvent> 
+{
     public:
 
     void Die();
+    void ReceiveData(ColliderEvent event);
 
     PlayerControllerComponent(GameContext* ctx, EntityID id);
-
+    void Start();
     void Update();
 };
 
 class RenderComponent : public IComponent {
+    private:
+
+    Texture2DResource currentTexture;
+
     public:
     
+    void SetCurrentTexture(Texture2DResource texture);
+
     RenderComponent(GameContext* ctx, EntityID id);
     void Update();
 };
@@ -162,12 +251,13 @@ enum GameState {
     GameOver,
 };
 
-class GameManager : public IComponent, public Subscriber<PlayerEvent::PlayerEvent> {
+class GameManager : public IComponent, public Subscriber<PlayerEvent> {
     private:
 
     static GameManager* instance;
 
     GameState state;
+    Counter asteroidSpawn;
 
     PlayerControllerComponent* spawnPlayer();
 
@@ -180,7 +270,7 @@ class GameManager : public IComponent, public Subscriber<PlayerEvent::PlayerEven
     static GameManager* getInstance();
     
     static void CreateGameManager(GameContext* ctx);
-    void ReceiveData(PlayerEvent::PlayerEvent event);
+    void ReceiveData(PlayerEvent event);
 
     void StartGame();
     GameState GetGameState();
@@ -209,7 +299,7 @@ class UIManager : public IComponent {
     void RecvPublishedData(GameState);
 };
 
-class MeteorComponent : public IComponent {
+class AsteroidComponent : public IComponent {
     private:
 
     f32 speed = 0;
@@ -219,39 +309,12 @@ class MeteorComponent : public IComponent {
 
     public:
 
-    static void SpawnMeteor(GameContext* ctx);
+    static void SpawnAsteroid(GameContext* ctx);
 
-    MeteorComponent(GameContext* ctx, EntityID id);
+    AsteroidComponent(GameContext* ctx, EntityID id);
     void Start();
     void Update();
     void End();
-};
-
-// === Resources ===
-
-struct Texture2DResource {
-    Texture2D texture;
-    Vector2 size;
-    Vector2 frames;
-
-    Texture2DResource(Texture2D texture, Vector2 size, Vector2 frames);
-
-    Vector2 GetFrameSize();
-
-    Rectangle GetFrame(int frameIndex);
-};
-
-class ResourceManager {
-    private:
-    
-    std::unordered_map<std::string, Texture2DResource> textures;
-
-    public:
-
-    void LoadTexture(std::string textureName, Vector2 size, Vector2 frames, std::string pathToTexture);
-    std::optional<Texture2DResource> GetTexture(std::string textureName);
-    
-    void FreeResources();
 };
 
 #endif

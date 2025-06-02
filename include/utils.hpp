@@ -20,6 +20,7 @@ struct Counter {
     f32 value;
     f32 maxValue;
 
+    Counter();
     Counter(f32 maxValue);
     Counter(f32 minValue, f32 maxValue);
 

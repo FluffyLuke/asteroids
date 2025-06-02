@@ -1,13 +1,15 @@
 #include <memory>
-#include <spdlog/spdlog.h>
 #include <unordered_map>
 #include <vector>
 
+#include "spdlog/spdlog.h"
 #include "raylib.h"
+
 #include "game.hpp"
 
 void LoadAllResources(GameContext* ctx) {
-    ctx->resourceManager->LoadTexture(texture_names::PlayerTexture, {30,30}, {1,1}, "./assets/player_placeholder.png");
+    ctx->resourceManager->LoadTexture(TextureNames::PlayerTexture, {30,30}, {1,1}, "./assets/player_placeholder.png");
+    ctx->resourceManager->LoadTexture(TextureNames::AsteroidTexture, {60,60}, {1,1}, "./assets/asteroid_placeholder.png");
 }
 
 void CreateTopLevelObjects(GameContext* ctx) {
@@ -37,6 +39,14 @@ int main(int argc, char ** argv) {
     while(!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
+
+        while(!ctx.newEntities.empty()) {
+            EntityID current = ctx.newEntities.back();
+            ctx.newEntities.pop_back();
+            for(auto& c : ctx.entities.at(current)) {
+                c->Start();
+            }
+        }
 
         std::vector<EntityID> currentEntities;
         for(EntityID id : ctx.topEntities) {

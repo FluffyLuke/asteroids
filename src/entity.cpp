@@ -20,22 +20,6 @@ EntityComponent* Entity::GetEntityComponent(GameContext* ctx, EntityID id) {
     return Entity::FindComponent<EntityComponent>(ctx, id).value();
 }
 
-template<typename T>
-std::optional<T*> Entity::FindComponent(GameContext* ctx, EntityID id) {
-    try {
-        auto& components = ctx->entities.at(id);
-        for(auto&& c : components) {
-            if(auto ptr = dynamic_cast<T*>(c.get())) {
-                return std::optional<T*>{ptr};
-            }
-        }
-    } catch(const std::out_of_range& e) {
-        spdlog::error("Entity ID {} not found: {}", id, e.what());
-    }
-
-    return std::nullopt;
-}
-
 std::optional<EntityID> Entity::GetEntityByName(GameContext* ctx, std::string name) {
     for(auto& e : ctx->entities) {
         if(Entity::GetEntityComponent(ctx, e.first)->name == name) {
@@ -81,6 +65,7 @@ EntityID Entity::New(GameContext* ctx) {
 
     ctx->entities.insert({nextID, std::move(components)});
     spdlog::info("Inserted new object of id: {}", nextID);
+    ctx->newEntities.push_back(nextID);
     ctx->topEntities.push_back(nextID);
 
     return nextID;
@@ -98,6 +83,7 @@ EntityID Entity::New(GameContext* ctx, EntityComponent* parent) {
 
     ctx->entities.insert({nextID, std::move(components)});
     spdlog::info("Inserted new object of id: {}", nextID);
+    ctx->newEntities.push_back(nextID);
     parent->children.push_back(nextID);
 
     return nextID;
@@ -118,6 +104,7 @@ EntityID Entity::New(GameContext* ctx, EntityID parent_id) {
 
     ctx->entities.insert({nextID, std::move(components)});
     spdlog::info("Inserted new object of id: {}", nextID);
+    ctx->newEntities.push_back(nextID);
     parent->children.push_back(nextID);
     return nextID;
 }

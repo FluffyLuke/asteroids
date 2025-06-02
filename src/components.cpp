@@ -20,19 +20,54 @@ EntityID IComponent::GetID() {
 
 // === Entity Component ===
 
-EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
-    Start();
-}
+EntityComponent::EntityComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
 void EntityComponent::Start() {}
+
+// === Collider Component ===
+
+ColliderComponent::ColliderComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
+
+void ColliderComponent::SetCollider(Vector2 dimensions, Vector2 offset) {
+    EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
+    
+    this->area = {
+        (dimensions.x / 2) + offset.x + ec->pos.x,
+        (dimensions.y / 2) + offset.y + ec->pos.y,
+        dimensions.x,
+        dimensions.y
+    };
+
+    this->offset = offset;
+}
+
+void ColliderComponent::Update() {
+    EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
+
+    this->area = {
+        (this->area.x / 2) + offset.x + ec->pos.x,
+        (this->area.y / 2) + offset.y + ec->pos.y,
+        this->area.x,
+        this->area.y
+    };
+
+
+    auto colliders = Entity::FindOtherComponents<ColliderComponent>(ctx, id);
+
+    for(auto c : colliders) {
+        if(CheckCollisionRecs(c->area, this->area)) {
+            this->PublishData({c->GetID()});
+        }
+    };
+}
 
 // === Game Manager ===
 
-GameManager::GameManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
+GameManager::GameManager(GameContext* ctx, EntityID id) : IComponent(ctx, id) {
     //printf("this->ctx = %p\n", this->ctx);
     this->instance = this;
     this->instance->ctx = ctx;
-    Start();
 }
+
 void GameManager::CreateGameManager(GameContext* ctx) {
     EntityID gm = Entity::New(ctx);
 
@@ -40,7 +75,7 @@ void GameManager::CreateGameManager(GameContext* ctx) {
     Entity::AddComponent(ctx, gm, std::move(gmc));
 }
 
-void GameManager::ReceiveData(PlayerEvent::PlayerEvent e) {
+void GameManager::ReceiveData(PlayerEvent e) {
     if(e == PlayerEvent::PlayerDied) {
         state = GameOver;
     }
@@ -49,6 +84,7 @@ void GameManager::ReceiveData(PlayerEvent::PlayerEvent e) {
 PlayerControllerComponent* GameManager::spawnPlayer() {
     std::optional entity_mainGame = Entity::GetEntityByName(ctx, "MainGame");
 
+    // Player
     EntityID player = Entity::New(ctx, entity_mainGame.value());
     EntityComponent* playerEntity = Entity::GetEntityComponent(ctx, player);
 
@@ -66,6 +102,11 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
     Vector2 middle = ScreenCenter();
     playerEntity->pos = middle;
 
+    // Timer
+
+    asteroidSpawn.maxValue = 1;
+    asteroidSpawn.ResetCounter();
+
     return playerControllerRaw;
 }
 
@@ -81,6 +122,7 @@ GameState GameManager::GetGameState() {
 void GameManager::StartGame() {
     spawnPlayer();
     state = Game;
+    
     timeAlive = 0;
 }
 
@@ -90,6 +132,13 @@ void GameManager::Start() {
 
 void GameManager::Update() {
     timeAlive += GetFrameTime();
+
+    if(state == GameState::Game) {
+        if(asteroidSpawn.UpdateCounter(GetFrameTime())) {
+            AsteroidComponent::SpawnAsteroid(ctx);
+            asteroidSpawn.ResetCounter();
+        }
+    }
 }
 
 void GameManager::End() {
@@ -98,9 +147,7 @@ void GameManager::End() {
 
 // === UI Manager ===
 
-UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {
-    Start();
-}
+UIManager::UIManager(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 void UIManager::CreateUIManager(GameContext *ctx) {
 
     std::optional entity_ui = Entity::GetEntityByName(ctx, "UI");
@@ -238,13 +285,18 @@ void UIManager::End() {
 
 // === Player Component ===
 
-PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {
-    Start();
-}
+PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 
 void PlayerControllerComponent::Die() {
     PublishData(PlayerEvent::PlayerDied);
     Entity::Destroy(ctx, id);
+}
+
+void PlayerControllerComponent::Start() {
+    RenderComponent* rc = Entity::FindComponent<RenderComponent>(ctx, id).value();
+
+    Texture2DResource texture = ctx->resourceManager->GetTexture(TextureNames::PlayerTexture).value();
+    rc->SetCurrentTexture(texture);
 }
 
 void PlayerControllerComponent::Update() {
@@ -295,13 +347,25 @@ void PlayerControllerComponent::Update() {
 
 // === Meteor Component ===
 
-MeteorComponent::MeteorComponent(GameContext* ctx, EntityID id) 
-    : IComponent(ctx, id), timeToDeath(15)
-{
-    Start();
+AsteroidComponent::AsteroidComponent(GameContext* ctx, EntityID id) 
+    : IComponent(ctx, id), timeToDeath(15) {}
+
+void AsteroidComponent::SpawnAsteroid(GameContext *ctx) {
+    EntityID mainGame = Entity::GetEntityByName(ctx, "MainGame").value();
+
+    EntityID asteroid = Entity::New(ctx, mainGame);
+    EntityComponent* asteroidEntity = Entity::GetEntityComponent(ctx, asteroid);
+
+    asteroidEntity->scale = {1.2, 1.2};
+
+    auto pcc = std::make_unique<AsteroidComponent>(ctx, asteroid);
+    auto rc = std::make_unique<RenderComponent>(ctx, asteroid);
+
+    Entity::AddComponent(ctx, asteroid, std::move(pcc));
+    Entity::AddComponent(ctx, asteroid, std::move(rc));
 }
 
-void MeteorComponent::Start() {
+void AsteroidComponent::Start() {
     EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
 
     Vector2 center = ScreenCenter();
@@ -312,49 +376,54 @@ void MeteorComponent::Start() {
 
     this->moveVector = Vector2Normalize(randomPoint - ec->pos);
     this->speed = GetRandomValue(200, 300);
+
+    RenderComponent* rc = Entity::FindComponent<RenderComponent>(ctx, id).value();
+    rc->SetCurrentTexture(ctx->resourceManager->GetTexture(TextureNames::AsteroidTexture).value());
+
+    spdlog::info("Spawned meteor");
 }
 
-void MeteorComponent::Update() {
+void AsteroidComponent::Update() {
     EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
 
-    ec->rotation += (speed/50) * GetFrameTime();
-    ec->pos += this->moveVector * speed;
+    ec->rotation += (speed) * GetFrameTime();
+    ec->pos += this->moveVector * speed * GetFrameTime();
+
+    if(ec->GetID() == 5)
+        spdlog::warn("{}: Position {}x, {}y", ec->GetID(), ec->pos.x, ec->pos.y);
 
     if(this->timeToDeath.UpdateCounter(GetFrameTime())) {
         Entity::Destroy(ctx, this->GetID());
+        spdlog::info("Destroyed asteroid");
     }
 }
 
-void MeteorComponent::End() {}
+void AsteroidComponent::End() {}
 
 // === Render Component ===
 
-RenderComponent::RenderComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {
-    Start();
+RenderComponent::RenderComponent(GameContext* ctx, EntityID id) : 
+    IComponent(ctx, id) {}
+
+void RenderComponent::SetCurrentTexture(Texture2DResource texture) {
+    this->currentTexture = texture;
 }
 
 void RenderComponent::Update() {
     EntityComponent* entity = Entity::GetEntityComponent(ctx, id);
 
-    std::optional<Texture2DResource> result = ctx->resourceManager->GetTexture(texture_names::PlayerTexture);
-    if(result.has_value()) {
-        Texture2DResource texture = result.value();
+    Vector2 pos = entity->pos;
+    Vector2 destSize = {currentTexture.GetFrameSize().x * entity->scale.x, currentTexture.GetFrameSize().y * entity->scale.y};
+    Vector2 origin;
+    origin.x = destSize.x/2;
+    origin.y = destSize.y/2;
 
-        Vector2 pos = entity->pos;
-        Vector2 destSize = {texture.GetFrameSize().x * entity->scale.x, texture.GetFrameSize().y * entity->scale.y};
-        Vector2 origin;
-        origin.x = destSize.x/2;
-        origin.y = destSize.y/2;
-
-        DrawTexturePro(
-            texture.texture, 
-            texture.GetFrame(0), 
-            {pos.x, pos.y, destSize.x,destSize.y}, 
-            origin, 
-            entity->rotation + 90, 
-            WHITE
-            );
-    } else {
-        spdlog::error("Cannot load texture!");
-    }
+    DrawTexturePro(
+    currentTexture.texture, 
+    currentTexture.GetFrame(0), 
+    {pos.x, pos.y, destSize.x,destSize.y}, 
+    origin, 
+    entity->rotation + 90, 
+    WHITE
+    );
 }
