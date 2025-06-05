@@ -25,37 +25,24 @@ void EntityComponent::Start() {}
 
 // === Collider Component ===
 
-ColliderComponent::ColliderComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
+CircleColliderComponent::CircleColliderComponent(GameContext* ctx, EntityID id) : IComponent(ctx, id) {}
 
-void ColliderComponent::SetCollider(Vector2 dimensions, Vector2 offset) {
-    EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
-    
-    this->area = {
-        (dimensions.x / 2) + offset.x + ec->pos.x,
-        (dimensions.y / 2) + offset.y + ec->pos.y,
-        dimensions.x,
-        dimensions.y
-    };
-
-    this->offset = offset;
+void CircleColliderComponent::SetCollider(f32 radius) {
+    this->radius = radius;
 }
 
-void ColliderComponent::Update() {
+void CircleColliderComponent::Update() {
     EntityComponent* ec = Entity::GetEntityComponent(ctx, id);
 
-    this->area = {
-        (this->area.x / 2) + offset.x + ec->pos.x,
-        (this->area.y / 2) + offset.y + ec->pos.y,
-        this->area.x,
-        this->area.y
-    };
-
-
-    auto colliders = Entity::FindOtherComponents<ColliderComponent>(ctx, id);
+    auto colliders = Entity::FindOtherComponents<CircleColliderComponent>(ctx, id);
 
     for(auto c : colliders) {
-        if(CheckCollisionRecs(c->area, this->area)) {
-            this->PublishData({c->GetID()});
+        EntityComponent* other = Entity::GetEntityComponent(ctx, c->GetID());
+        f32 distance = Vector2Distance(ec->pos, other->pos);
+        f32 totalRadius = this->radius + c->radius;
+        if(distance < totalRadius) {
+            spdlog::info("Hit");
+            c->PublishData({other->GetID()});
         }
     };
 }
@@ -78,6 +65,9 @@ void GameManager::CreateGameManager(GameContext* ctx) {
 void GameManager::ReceiveData(PlayerEvent e) {
     if(e == PlayerEvent::PlayerDied) {
         state = GameOver;
+        for(auto c : Entity::FindComponents<AsteroidComponent>(ctx)) {
+            Entity::Destroy(ctx, c->GetID());
+        }
     }
 }
 
@@ -92,12 +82,15 @@ PlayerControllerComponent* GameManager::spawnPlayer() {
 
     auto pcc = std::make_unique<PlayerControllerComponent>(ctx, player);
     auto rc = std::make_unique<RenderComponent>(ctx, player);
+    auto cc = std::make_unique<CircleColliderComponent>(ctx, player);
+    cc->SetCollider(20);
 
     PlayerControllerComponent* playerControllerRaw = pcc.get();
-    playerControllerRaw->RegisterSubscriber(*this);
+    playerControllerRaw->RegisterSubscriber(this);
 
     Entity::AddComponent(ctx, player, std::move(pcc));
     Entity::AddComponent(ctx, player, std::move(rc));
+    Entity::AddComponent(ctx, player, std::move(cc));
 
     Vector2 middle = ScreenCenter();
     playerEntity->pos = middle;
@@ -287,6 +280,10 @@ void UIManager::End() {
 
 PlayerControllerComponent::PlayerControllerComponent(GameContext* ctx, EntityID id): IComponent(ctx, id) {}
 
+void PlayerControllerComponent::ReceiveData(ColliderEvent event) {
+    Die();
+}
+
 void PlayerControllerComponent::Die() {
     PublishData(PlayerEvent::PlayerDied);
     Entity::Destroy(ctx, id);
@@ -294,9 +291,13 @@ void PlayerControllerComponent::Die() {
 
 void PlayerControllerComponent::Start() {
     RenderComponent* rc = Entity::FindComponent<RenderComponent>(ctx, id).value();
+    CircleColliderComponent* cc = Entity::FindComponent<CircleColliderComponent>(ctx, id).value();
+
 
     Texture2DResource texture = ctx->resourceManager->GetTexture(TextureNames::PlayerTexture).value();
     rc->SetCurrentTexture(texture);
+
+    cc->RegisterSubscriber(this);
 }
 
 void PlayerControllerComponent::Update() {
@@ -360,9 +361,12 @@ void AsteroidComponent::SpawnAsteroid(GameContext *ctx) {
 
     auto pcc = std::make_unique<AsteroidComponent>(ctx, asteroid);
     auto rc = std::make_unique<RenderComponent>(ctx, asteroid);
+    auto cc = std::make_unique<CircleColliderComponent>(ctx, asteroid);
+    cc->SetCollider(40);
 
     Entity::AddComponent(ctx, asteroid, std::move(pcc));
     Entity::AddComponent(ctx, asteroid, std::move(rc));
+    Entity::AddComponent(ctx, asteroid, std::move(cc));
 }
 
 void AsteroidComponent::Start() {
@@ -380,7 +384,7 @@ void AsteroidComponent::Start() {
     RenderComponent* rc = Entity::FindComponent<RenderComponent>(ctx, id).value();
     rc->SetCurrentTexture(ctx->resourceManager->GetTexture(TextureNames::AsteroidTexture).value());
 
-    spdlog::info("Spawned meteor");
+    spdlog::debug("Spawned meteor");
 }
 
 void AsteroidComponent::Update() {
@@ -388,9 +392,6 @@ void AsteroidComponent::Update() {
 
     ec->rotation += (speed) * GetFrameTime();
     ec->pos += this->moveVector * speed * GetFrameTime();
-
-    if(ec->GetID() == 5)
-        spdlog::warn("{}: Position {}x, {}y", ec->GetID(), ec->pos.x, ec->pos.y);
 
     if(this->timeToDeath.UpdateCounter(GetFrameTime())) {
         Entity::Destroy(ctx, this->GetID());

@@ -43,12 +43,11 @@ class Publisher {
 
     virtual ~Publisher() = default;
     int GetSubscriberCount() const {
-
         return subscribers.size();
     }
 
-    void RegisterSubscriber(Subscriber<T> & subscriber) {
-        subscribers.push_back(&subscriber);
+    void RegisterSubscriber(Subscriber<T>* subscriber) {
+        subscribers.push_back(subscriber);
     }
 
     void PublishData(T data) {
@@ -127,6 +126,20 @@ class Entity {
         return std::nullopt;
     }
     template<typename T>
+    static std::vector<T*> FindComponents(GameContext* ctx) {
+        std::vector<T*> components;
+
+        for(auto& e : ctx->entities) {
+            for(auto&& c : e.second) {
+                if(auto ptr = dynamic_cast<T*>(c.get())) {
+                    components.push_back(ptr);
+                }
+            }
+        }
+
+        return components;
+    }
+    template<typename T>
     static std::vector<T*> FindOtherComponents(GameContext* ctx, EntityID id) {
         std::vector<T*> components;
 
@@ -198,17 +211,14 @@ struct ColliderEvent {
     EntityID collidedWith;
 };
 
-class ColliderComponent : IComponent, Publisher<ColliderEvent> {
-    private:
-
-    Rectangle area;
-    Vector2 offset;
-
+class CircleColliderComponent : public IComponent, public Publisher<ColliderEvent> {
     public:
 
-    void SetCollider(Vector2 dimensions, Vector2 offset);
+    f32 radius;
 
-    ColliderComponent(GameContext* ctx, EntityID id);
+    void SetCollider(f32 radius);
+
+    CircleColliderComponent(GameContext* ctx, EntityID id);
     void Update();
 };
 

@@ -17,6 +17,17 @@ void CreateTopLevelObjects(GameContext* ctx) {
     Entity::New(ctx, "UI");
 }
 
+void debug(GameContext* ctx) {
+    Color redTrans = {255, 0, 0, 150};
+
+    auto colliders = Entity::FindComponents<CircleColliderComponent>(ctx);
+    for(auto c : colliders) {
+        EntityComponent* ec = Entity::GetEntityComponent(ctx, c->GetID());
+        Vector2 pos = ec->pos;
+        DrawCircle(pos.x, pos.y, c->radius, redTrans);
+    }
+}
+
 int main(int argc, char ** argv) {
     if(argc > 1) {
         spdlog::info("Debug mode: on");
@@ -36,6 +47,7 @@ int main(int argc, char ** argv) {
 
     LoadAllResources(&ctx);
 
+    bool d = false;
     while(!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
@@ -54,6 +66,7 @@ int main(int argc, char ** argv) {
             currentEntities.push_back(id);
         }
 
+        // FIX: render in order
         while(!currentEntities.empty()) {
             EntityID current = currentEntities.back();
             currentEntities.pop_back();
@@ -76,6 +89,9 @@ int main(int argc, char ** argv) {
             ctx.entities.erase(e);
         }
         ctx.deadEntities.clear();
+
+        if(IsKeyPressed(KEY_O)) d = !d;
+        if(d) debug(&ctx);
 
         EndDrawing();
     }

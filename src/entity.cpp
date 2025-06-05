@@ -64,7 +64,7 @@ EntityID Entity::New(GameContext* ctx) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
-    spdlog::info("Inserted new object of id: {}", nextID);
+    spdlog::debug("Inserted new object of id: {}", nextID);
     ctx->newEntities.push_back(nextID);
     ctx->topEntities.push_back(nextID);
 
@@ -82,7 +82,7 @@ EntityID Entity::New(GameContext* ctx, EntityComponent* parent) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
-    spdlog::info("Inserted new object of id: {}", nextID);
+    spdlog::debug("Inserted new object of id: {}", nextID);
     ctx->newEntities.push_back(nextID);
     parent->children.push_back(nextID);
 
@@ -103,7 +103,7 @@ EntityID Entity::New(GameContext* ctx, EntityID parent_id) {
     components.push_back(std::move(ec));
 
     ctx->entities.insert({nextID, std::move(components)});
-    spdlog::info("Inserted new object of id: {}", nextID);
+    spdlog::debug("Inserted new object of id: {}", nextID);
     ctx->newEntities.push_back(nextID);
     parent->children.push_back(nextID);
     return nextID;
