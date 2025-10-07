@@ -1,8 +1,21 @@
 [
-{
-  "directory": "/home/furras/Workspace/asteroids",
-  "command": "/usr/bin/c++  -I/home/furras/Workspace/asteroids/include -I/home/furras/Workspace/asteroids/lib/sdl/include-revision -I/home/furras/Workspace/asteroids/lib/sdl/include -std=gnu++20 -o CMakeFiles/Asteroids.dir/src/main.cpp.o -c /home/furras/Workspace/asteroids/src/main.cpp",
-  "file": "/home/furras/Workspace/asteroids/src/main.cpp",
-  "output": "CMakeFiles/Asteroids.dir/src/main.cpp.o"
-}
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-DGRAPHICS_API_OPENGL_33",
+      "-DPLATFORM_DESKTOP",
+      "-I/home/furras/Workspace/Asteroids/include",
+      "-I/home/furras/Workspace/Asteroids/lib/raylib/src",
+      "-I/home/furras/Workspace/Asteroids/lib/entt/single_include/entt",
+      "-I/home/furras/Workspace/Asteroids/lib/entt/src",
+      "-std=gnu++20",
+      "-c",
+      "-o",
+      "CMakeFiles/Asteroids.dir/src/main.cpp.o",
+      "/home/furras/Workspace/Asteroids/src/main.cpp"
+    ],
+    "directory": "/home/furras/Workspace/Asteroids/build",
+    "file": "/home/furras/Workspace/Asteroids/src/main.cpp",
+    "output": "/home/furras/Workspace/Asteroids/build/CMakeFiles/Asteroids.dir/src/main.cpp.o"
+  }
 ]
