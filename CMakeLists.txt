@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 add_subdirectory("lib/entt")
+add_subdirectory("lib/spdlog")
 add_subdirectory("lib/raylib" EXCLUDE_FROM_ALL)
 
 project(Asteroids)
@@ -15,5 +16,11 @@ add_executable(Asteroids "${MY_SOURCES}")
 target_include_directories(Asteroids PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(Asteroids PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/src")
 target_include_directories(Asteroids PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/entt/single_include/entt")
+target_include_directories(Asteroids PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/spdlog/include")
 
 target_link_libraries(Asteroids PRIVATE EnTT::EnTT raylib)
+
+add_custom_command(TARGET Asteroids POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/assets
+                ${CMAKE_CURRENT_BINARY_DIR}/target/assets)
